@@ -106,7 +106,7 @@ export class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
 
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
