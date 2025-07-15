@@ -1,98 +1,306 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# FileShare Backend - NestJS API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The backend service for FileShare, built with NestJS, TypeScript, and Appwrite integration. Provides secure file management, user authentication, and share link functionality.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+![NestJS](https://img.shields.io/badge/Framework-NestJS-red)
+![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue)
+![JWT](https://img.shields.io/badge/Auth-JWT-green)
+![Appwrite](https://img.shields.io/badge/Database-Appwrite-pink)
 
-## Description
+## 🚀 Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### 🔐 **Authentication & Authorization**
+- JWT-based authentication with Passport.js
+- User registration and login
+- Protected routes with guards
+- Token refresh functionality
+- Session management
 
-## Project setup
+### 📁 **File Management**
+- File upload with Multer integration
+- Appwrite storage integration
+- File metadata management
+- User-specific file access control
+- File deletion with cleanup
 
-```bash
-$ npm install
-```
+### 🔗 **Share Management**
+- Secure share link generation
+- Expiration date handling
+- Download count tracking
+- Access validation
+- Share link revocation
 
-## Compile and run the project
+### 🏗️ **Architecture**
+- Modular NestJS architecture
+- Dependency injection
+- Configuration management
+- Error handling middleware
+- Logging and monitoring
 
-```bash
-# development
-$ npm run start
+## 📋 Prerequisites
 
-# watch mode
-$ npm run start:dev
+- Node.js 18+ and npm
+- Appwrite account and project
+- Environment variables configured
 
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 🛠️ Installation
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Install dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env
+
+# Configure your environment variables (see below)
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## ⚙️ Environment Configuration
 
-## Resources
+Create a `.env` file in the backend directory:
 
-Check out a few resources that may come in handy when working with NestJS:
+```env
+# Appwrite Configuration
+APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
+APPWRITE_PROJECT_ID=your_project_id
+APPWRITE_API_KEY=your_api_key
+APPWRITE_DATABASE_ID=your_database_id
+APPWRITE_USER_COLLECTION_ID=users
+APPWRITE_FILES_COLLECTION_ID=files
+APPWRITE_SHARES_COLLECTION_ID=shares
+APPWRITE_BUCKET_ID=your_bucket_id
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=24h
 
-## Support
+# Application Configuration
+BASE_URL=http://localhost:8000
+PORT=8000
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 🚀 Running the Application
 
-## Stay in touch
+```bash
+# Development mode
+npm run start:dev
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+# Production mode
+npm run build
+npm run start:prod
 
-## License
+# Debug mode
+npm run start:debug
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+The API will be available at `http://localhost:3000`
+
+## 📚 API Documentation
+
+### **Authentication Endpoints**
+
+#### POST `/auth/signup`
+Register a new user
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword",
+  "name": "John Doe"
+}
+```
+
+#### POST `/auth/login`
+Authenticate user and get JWT token
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+#### GET `/auth/me`
+Get current user information (requires JWT)
+
+#### POST `/auth/logout`
+Logout user (requires JWT)
+
+#### POST `/auth/refresh`
+Refresh JWT token (requires JWT)
+
+### **File Management Endpoints**
+
+#### POST `/files/upload`
+Upload a file (requires JWT)
+- Content-Type: `multipart/form-data`
+- Field name: `file`
+
+#### GET `/files/my-files`
+Get user's files (requires JWT)
+
+#### GET `/files/:fileId`
+Get file information (requires JWT)
+
+#### DELETE `/files/:fileId`
+Delete a file (requires JWT)
+
+#### POST `/files/:fileId/share`
+Create a share link for a file (requires JWT)
+```json
+{
+  "expiresAt": "2024-12-31T23:59:59Z",
+  "maxDownloads": 10
+}
+```
+
+### **Share Management Endpoints**
+
+#### GET `/shares/:shareToken`
+Get shared file information (public)
+
+#### POST `/shares/:shareToken/download`
+Download shared file (public)
+
+#### GET `/shares/:shareToken/stats`
+Get share statistics (public)
+
+#### DELETE `/shares/:shareToken`
+Delete share link (requires JWT, owner only)
+
+## 🏗️ Project Structure
+
+```
+src/
+├── auth/                   # Authentication module
+│   ├── auth.controller.ts  # Auth endpoints
+│   ├── auth.service.ts     # Auth business logic
+│   ├── auth.module.ts      # Auth module definition
+│   ├── jwt.strategy.ts     # JWT strategy
+│   ├── jwt-auth.guard.ts   # JWT guard
+│   └── public.decorator.ts # Public route decorator
+├── files/                  # File management module
+│   ├── files.controller.ts # File endpoints
+│   ├── files.service.ts    # File business logic
+│   └── files.module.ts     # File module definition
+├── shares/                 # Share management module
+│   ├── shares.controller.ts# Share endpoints
+│   ├── shares.service.ts   # Share business logic
+│   └── shares.module.ts    # Share module definition
+├── appwrite/              # Appwrite integration
+│   ├── appwrite.service.ts # Appwrite client
+│   └── appwrite.module.ts  # Appwrite module
+├── config/                # Configuration
+│   └── appwrite.config.ts  # Appwrite config
+├── app.module.ts          # Root module
+└── main.ts               # Application entry point
+```
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
+
+# End-to-end tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+
+# Watch mode
+npm run test:watch
+```
+
+## 🔒 Security Features
+
+- **JWT Authentication** - Secure token-based authentication
+- **Route Guards** - Protected endpoints with role-based access
+- **Input Validation** - Request validation with class-validator
+- **Error Handling** - Comprehensive error handling and logging
+- **CORS Configuration** - Secure cross-origin resource sharing
+- **Rate Limiting** - Protection against abuse (can be added)
+
+## 📦 Dependencies
+
+### **Core Dependencies**
+- `@nestjs/core` - NestJS core framework
+- `@nestjs/common` - Common NestJS utilities
+- `@nestjs/jwt` - JWT integration
+- `@nestjs/passport` - Passport authentication
+- `@nestjs/platform-express` - Express platform
+- `@nestjs/config` - Configuration management
+- `node-appwrite` - Appwrite SDK
+- `passport-jwt` - JWT passport strategy
+- `multer` - File upload handling
+
+### **Development Dependencies**
+- `@nestjs/testing` - Testing utilities
+- `@types/*` - TypeScript type definitions
+- `jest` - Testing framework
+- `supertest` - HTTP testing
+- `eslint` - Code linting
+- `prettier` - Code formatting
+
+## 🚀 Deployment
+
+### **Production Build**
+```bash
+npm run build
+npm run start:prod
+```
+
+### **Environment Variables for Production**
+- Set strong `JWT_SECRET`
+- Configure production `APPWRITE_*` credentials
+- Set appropriate `BASE_URL`
+- Configure logging levels
+- Set up monitoring and health checks
+
+### **Docker Deployment**
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist ./dist
+EXPOSE 3000
+CMD ["node", "dist/main"]
+```
+
+## 🐛 Troubleshooting
+
+### **Common Issues**
+
+1. **Appwrite Connection Issues**
+   - Verify `APPWRITE_ENDPOINT` and `APPWRITE_PROJECT_ID`
+   - Check API key permissions
+   - Ensure collections exist with correct IDs
+
+2. **JWT Token Issues**
+   - Verify `JWT_SECRET` is set
+   - Check token expiration settings
+   - Ensure proper Authorization header format
+
+3. **File Upload Issues**
+   - Check Appwrite bucket permissions
+   - Verify `APPWRITE_BUCKET_ID` is correct
+   - Ensure sufficient storage quota
+
+## 📝 Contributing
+
+1. Follow NestJS coding conventions
+2. Write tests for new features
+3. Update documentation
+4. Use TypeScript strictly
+5. Follow the existing project structure
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For issues and questions:
+1. Check the main project README
+2. Review the API documentation
+3. Check Appwrite documentation
+4. Create an issue with detailed information

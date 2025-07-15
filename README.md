@@ -207,7 +207,7 @@ npm run dev -- --port 3001
 ## 📖 Usage
 
 ### **Getting Started**
-1. Visit http://localhost:3001
+1. Visit http://localhost:3000
 2. Create an account or sign in
 3. Upload files using drag & drop or file picker
 4. Manage your files from the dashboard
