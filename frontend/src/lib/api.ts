@@ -1,5 +1,5 @@
 // API configuration and utilities
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -38,9 +38,9 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...(options.headers as Record<string, string>),
     };
 
     if (this.token) {
@@ -54,7 +54,7 @@ export class ApiClient {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return {
           success: false,
