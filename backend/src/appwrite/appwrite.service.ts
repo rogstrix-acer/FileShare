@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Account, Client, Databases, ID, Query, Users, Storage } from "node-appwrite";
-import { InputFile } from "node-appwrite/dist/inputFile";
 
 
 export interface AppwriteUser {
@@ -271,10 +270,18 @@ export class AppwriteService {
     async uploadFile(file: Express.Multer.File, userId: string) {
         try {
             const fileId = ID.unique();
+            
+            // Create a File-like object from the buffer
+            const fileBlob = new Blob([file.buffer], { type: file.mimetype });
+            const fileObject = new File([fileBlob], file.originalname, {
+                type: file.mimetype,
+                lastModified: Date.now()
+            });
+
             const uploadedFile = await this.storage.createFile(
                 this.bucketId,
                 fileId,
-                InputFile.fromBuffer(file.buffer, file.originalname)
+                fileObject
             );
 
             // Store file metadata in database
