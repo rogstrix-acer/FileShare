@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AppwriteService, CreateUserDto, LoginDto } from '../appwrite/appwrite.service';
+import { JwtPayload } from '../guards/jwt.strategy';
 
 @Injectable()
 export class AuthService {
-    constructor(private appwriteService: AppwriteService) {}
+    constructor(
+        private appwriteService: AppwriteService,
+        private jwtService: JwtService
+    ) {}
 
     async signup(userData: CreateUserDto) {
         try {
@@ -31,14 +36,18 @@ export class AuthService {
             const session = await this.appwriteService.createSession(loginData);
             const user = await this.appwriteService.getUser(session.userId);
             
+            // Generate JWT token
+            const payload: JwtPayload = {
+                sub: user.$id,
+                email: user.email,
+                name: user.name
+            };
+            const accessToken = this.jwtService.sign(payload);
+            
             return {
                 success: true,
                 message: 'Login successful',
-                session: {
-                    sessionId: session.$id,
-                    userId: session.userId,
-                    expire: session.expire
-                },
+                accessToken,
                 user: {
                     id: user.$id,
                     email: user.email,
@@ -211,6 +220,36 @@ export class AuthService {
             return {
                 success: false,
                 message: error.message || 'Invalid session'
+            };
+        }
+    }
+
+    async refreshToken(userId: string) {
+        try {
+            const user = await this.appwriteService.getUser(userId);
+            
+            const payload: JwtPayload = {
+                sub: user.$id,
+                email: user.email,
+                name: user.name
+            };
+            const accessToken = this.jwtService.sign(payload);
+            
+            return {
+                success: true,
+                message: 'Token refreshed successfully',
+                accessToken,
+                user: {
+                    id: user.$id,
+                    email: user.email,
+                    name: user.name,
+                    emailVerification: user.emailVerification
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to refresh token'
             };
         }
     }

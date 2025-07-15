@@ -7,12 +7,15 @@ import {
     Body, 
     UseInterceptors, 
     UploadedFile, 
-    Query 
+    UseGuards,
+    Request
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('files')
+@UseGuards(JwtAuthGuard)
 export class FilesController {
     constructor(private filesService: FilesService) {}
 
@@ -20,7 +23,7 @@ export class FilesController {
     @UseInterceptors(FileInterceptor('file'))
     async uploadFile(
         @UploadedFile() file: Express.Multer.File,
-        @Body('userId') userId: string
+        @Request() req: any
     ) {
         if (!file) {
             return {
@@ -28,25 +31,25 @@ export class FilesController {
                 message: 'No file provided'
             };
         }
-        return this.filesService.uploadFile(file, userId);
+        return this.filesService.uploadFile(file, req.user.userId);
     }
 
     @Post(':fileId/share')
     async createShareLink(
         @Param('fileId') fileId: string,
         @Body() shareData: { 
-            userId: string; 
             expiresAt?: string;
             maxDownloads?: number;
-        }
+        },
+        @Request() req: any
     ) {
         const expiresAt = shareData.expiresAt ? new Date(shareData.expiresAt) : undefined;
-        return this.filesService.createShareLink(fileId, shareData.userId, expiresAt);
+        return this.filesService.createShareLink(fileId, req.user.userId, expiresAt);
     }
 
-    @Get('user/:userId')
-    async getUserFiles(@Param('userId') userId: string) {
-        return this.filesService.getUserFiles(userId);
+    @Get('my-files')
+    async getUserFiles(@Request() req: any) {
+        return this.filesService.getUserFiles(req.user.userId);
     }
 
     @Get(':fileId')
@@ -57,13 +60,13 @@ export class FilesController {
     @Delete(':fileId')
     async deleteFile(
         @Param('fileId') fileId: string,
-        @Body('userId') userId: string
+        @Request() req: any
     ) {
-        return this.filesService.deleteFile(fileId, userId);
+        return this.filesService.deleteFile(fileId, req.user.userId);
     }
 
-    @Get('user/:userId/shares')
-    async getUserShares(@Param('userId') userId: string) {
-        return this.filesService.getUserShares(userId);
+    @Get('my-shares')
+    async getUserShares(@Request() req: any) {
+        return this.filesService.getUserShares(req.user.userId);
     }
 }

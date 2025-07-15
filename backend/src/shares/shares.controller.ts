@@ -1,16 +1,21 @@
-import { Controller, Get, Post, Delete, Param, Body, Res } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Res, UseGuards, Request } from '@nestjs/common';
 import { Response } from 'express';
 import { SharesService } from './shares.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../guards/public.decorator';
 
 @Controller('shares')
+@UseGuards(JwtAuthGuard)
 export class SharesController {
     constructor(private sharesService: SharesService) {}
 
+    @Public()
     @Get(':shareToken')
     async getSharedFile(@Param('shareToken') shareToken: string) {
         return this.sharesService.getSharedFile(shareToken);
     }
 
+    @Public()
     @Post(':shareToken/download')
     async downloadSharedFile(
         @Param('shareToken') shareToken: string,
@@ -26,6 +31,7 @@ export class SharesController {
         }
     }
 
+    @Public()
     @Get(':shareToken/stats')
     async getShareStats(@Param('shareToken') shareToken: string) {
         return this.sharesService.getShareStats(shareToken);
@@ -34,8 +40,8 @@ export class SharesController {
     @Delete(':shareToken')
     async deleteShare(
         @Param('shareToken') shareToken: string,
-        @Body('userId') userId: string
+        @Request() req: any
     ) {
-        return this.sharesService.deleteShare(shareToken, userId);
+        return this.sharesService.deleteShare(shareToken, req.user.userId);
     }
 }

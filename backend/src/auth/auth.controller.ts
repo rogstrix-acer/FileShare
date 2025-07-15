@@ -1,37 +1,55 @@
-import { Controller, Post, Body, Get, Param, Put, Delete, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Put, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto, LoginDto } from '../appwrite/appwrite.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../guards/public.decorator';
 
 @Controller('auth')
+@UseGuards(JwtAuthGuard)
 export class AuthController {
     constructor(private authService: AuthService) { }
 
+    @Public()
     @Post('signup')
     async signup(@Body() userData: CreateUserDto) {
         return this.authService.signup(userData);
     }
 
+    @Public()
     @Post('login')
     async login(@Body() loginData: LoginDto) {
         return this.authService.login(loginData);
     }
 
     @Post('logout')
-    async logout(@Body() body?: { sessionId?: string }) {
-        return this.authService.logout(body?.sessionId);
+    async logout(@Request() req: any) {
+        return this.authService.logout();
     }
 
-    @Get('profile/:userId')
-    async getUserProfile(@Param('userId') userId: string) {
-        return this.authService.getUserProfile(userId);
+    @Get('profile')
+    async getUserProfile(@Request() req: any) {
+        return this.authService.getUserProfile(req.user.userId);
     }
 
-    @Put('profile/:userId')
+    @Put('profile')
     async updateUserProfile(
-        @Param('userId') userId: string,
+        @Request() req: any,
         @Body() profileData: any
     ) {
-        return this.authService.updateUserProfile(userId, profileData);
+        return this.authService.updateUserProfile(req.user.userId, profileData);
+    }
+
+    @Get('me')
+    async getCurrentUser(@Request() req: any) {
+        return {
+            success: true,
+            user: req.user
+        };
+    }
+
+    @Post('refresh')
+    async refreshToken(@Request() req: any) {
+        return this.authService.refreshToken(req.user.userId);
     }
 
     @Get('user/email')
