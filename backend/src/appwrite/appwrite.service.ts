@@ -315,4 +315,201 @@ export class AppwriteService {
         );
     }
 
+    // File Management Methods
+    async getUserFiles(userId: string) {
+        try {
+            const files = await this.databases.listDocuments(
+                this.databaseId,
+                'files',
+                [Query.equal('userId', userId), Query.orderDesc('createdAt')]
+            );
+            return files.documents;
+        } catch (error) {
+            this.logger.error('Error getting user files:', error);
+            throw new BadRequestException('Failed to get user files');
+        }
+    }
+
+    async getFileById(fileId: string) {
+        try {
+            const files = await this.databases.listDocuments(
+                this.databaseId,
+                'files',
+                [Query.equal('fileId', fileId)]
+            );
+            return files.documents.length > 0 ? files.documents[0] : null;
+        } catch (error) {
+            this.logger.error('Error getting file:', error);
+            return null;
+        }
+    }
+
+    async deleteFile(fileId: string, userId: string) {
+        try {
+            // First get the file record to verify ownership
+            const fileRecord = await this.getFileById(fileId);
+            if (!fileRecord || fileRecord.userId !== userId) {
+                throw new UnauthorizedException('File not found or access denied');
+            }
+
+            // Delete from storage
+            await this.storage.deleteFile(this.bucketId, fileId);
+
+            // Delete file record from database
+            await this.databases.deleteDocument(
+                this.databaseId,
+                'files',
+                fileRecord.$id
+            );
+
+            // Delete associated shares
+            const shares = await this.databases.listDocuments(
+                this.databaseId,
+                'shares',
+                [Query.equal('fileId', fileId)]
+            );
+
+            for (const share of shares.documents) {
+                await this.databases.deleteDocument(
+                    this.databaseId,
+                    'shares',
+                    share.$id
+                );
+            }
+
+            this.logger.log(`File deleted: ${fileId}`);
+            return true;
+        } catch (error) {
+            this.logger.error('Error deleting file:', error);
+            throw new BadRequestException('Failed to delete file');
+        }
+    }
+
+    // Share Management Methods
+    async getShareByToken(shareToken: string) {
+        try {
+            const shares = await this.databases.listDocuments(
+                this.databaseId,
+                'shares',
+                [Query.equal('shareToken', shareToken)]
+            );
+            return shares.documents.length > 0 ? shares.documents[0] : null;
+        } catch (error) {
+            this.logger.error('Error getting share by token:', error);
+            return null;
+        }
+    }
+
+    async validateShare(shareToken: string) {
+        try {
+            const share = await this.getShareByToken(shareToken);
+            if (!share) {
+                return { valid: false, reason: 'Share not found' };
+            }
+
+            // Check if expired
+            if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+                return { valid: false, reason: 'Share expired' };
+            }
+
+            // Check download limits
+            if (share.maxDownloads && share.downloadCount >= share.maxDownloads) {
+                return { valid: false, reason: 'Download limit exceeded' };
+            }
+
+            return { valid: true, share };
+        } catch (error) {
+            this.logger.error('Error validating share:', error);
+            return { valid: false, reason: 'Validation failed' };
+        }
+    }
+
+    async incrementDownloadCount(shareToken: string) {
+        try {
+            const share = await this.getShareByToken(shareToken);
+            if (!share) {
+                throw new BadRequestException('Share not found');
+            }
+
+            await this.databases.updateDocument(
+                this.databaseId,
+                'shares',
+                share.$id,
+                {
+                    downloadCount: (share.downloadCount || 0) + 1,
+                    lastDownloadAt: new Date().toISOString()
+                }
+            );
+
+            return true;
+        } catch (error) {
+            this.logger.error('Error incrementing download count:', error);
+            throw new BadRequestException('Failed to update download count');
+        }
+    }
+
+    async deleteShare(shareToken: string, userId?: string) {
+        try {
+            const share = await this.getShareByToken(shareToken);
+            if (!share) {
+                throw new BadRequestException('Share not found');
+            }
+
+            // If userId provided, verify ownership
+            if (userId) {
+                const fileRecord = await this.getFileById(share.fileId);
+                if (!fileRecord || fileRecord.userId !== userId) {
+                    throw new UnauthorizedException('Access denied');
+                }
+            }
+
+            await this.databases.deleteDocument(
+                this.databaseId,
+                'shares',
+                share.$id
+            );
+
+            this.logger.log(`Share deleted: ${shareToken}`);
+            return true;
+        } catch (error) {
+            this.logger.error('Error deleting share:', error);
+            throw new BadRequestException('Failed to delete share');
+        }
+    }
+
+    async getFileDownloadUrl(fileId: string) {
+        try {
+            // Generate a temporary download URL
+            const downloadUrl = `${this.configService.get<string>('appwrite.endpoint')}/storage/buckets/${this.bucketId}/files/${fileId}/download?project=${this.projectId}`;
+            return downloadUrl;
+        } catch (error) {
+            this.logger.error('Error generating download URL:', error);
+            throw new BadRequestException('Failed to generate download URL');
+        }
+    }
+
+    async getUserShares(userId: string) {
+        try {
+            // Get all files for the user first
+            const userFiles = await this.getUserFiles(userId);
+            const fileIds = userFiles.map(file => file.fileId);
+
+            if (fileIds.length === 0) {
+                return [];
+            }
+
+            // Get all shares for user's files
+            const shares = await this.databases.listDocuments(
+                this.databaseId,
+                'shares',
+                [Query.equal('fileId', fileIds), Query.orderDesc('createdAt')]
+            );
+
+            return shares.documents;
+        } catch (error) {
+            this.logger.error('Error getting user shares:', error);
+            throw new BadRequestException('Failed to get user shares');
+        }
+    }
+
 }

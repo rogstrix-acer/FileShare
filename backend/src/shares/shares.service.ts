@@ -3,21 +3,45 @@ import { AppwriteService } from '../appwrite/appwrite.service';
 
 @Injectable()
 export class SharesService {
-    constructor(private appwriteService: AppwriteService) {}
+    constructor(private appwriteService: AppwriteService) { }
 
     async getSharedFile(shareToken: string) {
         try {
-            // This would need to be implemented in AppwriteService
-            // Query the shares collection to find the file by shareToken
+            const validation = await this.appwriteService.validateShare(shareToken);
+            if (!validation.valid || !validation.share) {
+                return {
+                    success: false,
+                    message: validation.reason || 'Share not found'
+                };
+            }
+
+            const share = validation.share;
+            const file = await this.appwriteService.getFileById(share.fileId);
+
+            if (!file) {
+                return {
+                    success: false,
+                    message: 'File not found'
+                };
+            }
+
             return {
                 success: true,
                 message: 'Shared file retrieved successfully',
                 file: {
-                    // File metadata would be returned here
-                    shareToken,
-                    downloadCount: 0,
-                    maxDownloads: null,
-                    expiresAt: null
+                    id: file.$id,
+                    fileId: file.fileId,
+                    originalName: file.originalName,
+                    size: file.size,
+                    mimeType: file.mimeType,
+                    createdAt: file.createdAt
+                },
+                share: {
+                    shareToken: share.shareToken,
+                    downloadCount: share.downloadCount,
+                    maxDownloads: share.maxDownloads,
+                    expiresAt: share.expiresAt,
+                    createdAt: share.createdAt
                 }
             };
         } catch (error) {
@@ -30,15 +54,26 @@ export class SharesService {
 
     async downloadSharedFile(shareToken: string) {
         try {
-            // This would:
-            // 1. Verify share token is valid and not expired
-            // 2. Check download limits
-            // 3. Increment download count
-            // 4. Return file download URL or stream
+            const validation = await this.appwriteService.validateShare(shareToken);
+            if (!validation.valid || !validation.share) {
+                return {
+                    success: false,
+                    message: validation.reason || 'Share not found'
+                };
+            }
+
+            const share = validation.share;
+
+            // Increment download count
+            await this.appwriteService.incrementDownloadCount(shareToken);
+
+            // Get download URL
+            const downloadUrl = await this.appwriteService.getFileDownloadUrl(share.fileId);
+
             return {
                 success: true,
                 message: 'File download initiated',
-                downloadUrl: `https://your-appwrite-endpoint/storage/buckets/files/${shareToken}/download`
+                downloadUrl
             };
         } catch (error) {
             return {
@@ -50,17 +85,29 @@ export class SharesService {
 
     async getShareStats(shareToken: string) {
         try {
-            // Get download statistics for a share
+            const share = await this.appwriteService.getShareByToken(shareToken);
+            if (!share) {
+                return {
+                    success: false,
+                    message: 'Share not found'
+                };
+            }
+
+            const isExpired = share.expiresAt && new Date(share.expiresAt) < new Date();
+            const isLimitReached = share.maxDownloads && share.downloadCount >= share.maxDownloads;
+
             return {
                 success: true,
                 message: 'Share statistics retrieved',
                 stats: {
-                    shareToken,
-                    downloadCount: 0,
-                    maxDownloads: null,
-                    expiresAt: null,
-                    createdAt: new Date().toISOString(),
-                    isExpired: false
+                    shareToken: share.shareToken,
+                    downloadCount: share.downloadCount || 0,
+                    maxDownloads: share.maxDownloads,
+                    expiresAt: share.expiresAt,
+                    createdAt: share.createdAt,
+                    isExpired: !!isExpired,
+                    isLimitReached: !!isLimitReached,
+                    isActive: !isExpired && !isLimitReached
                 }
             };
         } catch (error) {
@@ -73,7 +120,7 @@ export class SharesService {
 
     async deleteShare(shareToken: string, userId: string) {
         try {
-            // Delete a share link (only by file owner)
+            await this.appwriteService.deleteShare(shareToken, userId);
             return {
                 success: true,
                 message: 'Share link deleted successfully'

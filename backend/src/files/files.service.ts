@@ -50,12 +50,18 @@ export class FilesService {
 
     async getUserFiles(userId: string) {
         try {
-            // This would need to be implemented in AppwriteService
-            // For now, returning a placeholder
+            const files = await this.appwriteService.getUserFiles(userId);
             return {
                 success: true,
                 message: 'Files retrieved successfully',
-                files: [] // Will be populated when we add the database query
+                files: files.map(file => ({
+                    id: file.$id,
+                    fileId: file.fileId,
+                    originalName: file.originalName,
+                    size: file.size,
+                    mimeType: file.mimeType,
+                    createdAt: file.createdAt
+                }))
             };
         } catch (error) {
             return {
@@ -67,7 +73,7 @@ export class FilesService {
 
     async deleteFile(fileId: string, userId: string) {
         try {
-            // This would need to be implemented in AppwriteService
+            await this.appwriteService.deleteFile(fileId, userId);
             return {
                 success: true,
                 message: 'File deleted successfully'
@@ -82,16 +88,54 @@ export class FilesService {
 
     async getFileInfo(fileId: string) {
         try {
-            // This would need to be implemented in AppwriteService
+            const file = await this.appwriteService.getFileById(fileId);
+            if (!file) {
+                return {
+                    success: false,
+                    message: 'File not found'
+                };
+            }
             return {
                 success: true,
                 message: 'File info retrieved successfully',
-                file: {} // Will be populated when we add the database query
+                file: {
+                    id: file.$id,
+                    fileId: file.fileId,
+                    originalName: file.originalName,
+                    size: file.size,
+                    mimeType: file.mimeType,
+                    userId: file.userId,
+                    createdAt: file.createdAt
+                }
             };
         } catch (error) {
             return {
                 success: false,
                 message: error.message || 'Failed to get file info'
+            };
+        }
+    }
+
+    async getUserShares(userId: string) {
+        try {
+            const shares = await this.appwriteService.getUserShares(userId);
+            return {
+                success: true,
+                message: 'Shares retrieved successfully',
+                shares: shares.map(share => ({
+                    id: share.$id,
+                    fileId: share.fileId,
+                    shareToken: share.shareToken,
+                    downloadCount: share.downloadCount,
+                    maxDownloads: share.maxDownloads,
+                    expiresAt: share.expiresAt,
+                    createdAt: share.createdAt
+                }))
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to get shares'
             };
         }
     }

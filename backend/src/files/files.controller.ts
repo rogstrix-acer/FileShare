@@ -61,4 +61,9 @@ export class FilesController {
     ) {
         return this.filesService.deleteFile(fileId, userId);
     }
+
+    @Get('user/:userId/shares')
+    async getUserShares(@Param('userId') userId: string) {
+        return this.filesService.getUserShares(userId);
+    }
 }
