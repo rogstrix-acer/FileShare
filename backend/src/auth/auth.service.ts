@@ -83,4 +83,135 @@ export class AuthService {
             };
         }
     }
+
+    async updateUserProfile(userId: string, profileData: any) {
+        try {
+            const updatedProfile = await this.appwriteService.updateUserProfile(userId, profileData);
+            return {
+                success: true,
+                message: 'Profile updated successfully',
+                profile: updatedProfile
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to update profile'
+            };
+        }
+    }
+
+    async getUserByEmail(email: string) {
+        try {
+            const user = await this.appwriteService.getUserByEmail(email);
+            if (!user) {
+                return {
+                    success: false,
+                    message: 'User not found'
+                };
+            }
+            return {
+                success: true,
+                user: {
+                    id: user.$id,
+                    email: user.email,
+                    name: user.name,
+                    emailVerification: user.emailVerification
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to get user'
+            };
+        }
+    }
+
+    async getUser(userId: string) {
+        try {
+            const user = await this.appwriteService.getUser(userId);
+            return {
+                success: true,
+                user: {
+                    id: user.$id,
+                    email: user.email,
+                    name: user.name,
+                    emailVerification: user.emailVerification,
+                    status: user.status,
+                    registration: user.registration
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to get user'
+            };
+        }
+    }
+
+    async updateUser(userId: string, updateData: Partial<CreateUserDto>) {
+        try {
+            const updatedUser = await this.appwriteService.updateUser(userId, updateData);
+            return {
+                success: true,
+                message: 'User updated successfully',
+                user: {
+                    id: updatedUser.$id,
+                    email: updatedUser.email,
+                    name: updatedUser.name,
+                    emailVerification: updatedUser.emailVerification
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to update user'
+            };
+        }
+    }
+
+    async deleteUser(userId: string) {
+        try {
+            await this.appwriteService.deleteUser(userId);
+            return {
+                success: true,
+                message: 'User deleted successfully'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to delete user'
+            };
+        }
+    }
+
+    async resetPassword(userId: string, otp: string, newPassword: string) {
+        try {
+            await this.appwriteService.confirmPasswordRecovery(userId, otp, newPassword);
+            return {
+                success: true,
+                message: 'Password reset successfully'
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Failed to reset password'
+            };
+        }
+    }
+
+    async verifySession(sessionId: string) {
+        try {
+            const verification = await this.appwriteService.verifySession(sessionId);
+            return {
+                success: true,
+                message: 'Session is valid',
+                verification
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Invalid session'
+            };
+        }
+    }
 }
