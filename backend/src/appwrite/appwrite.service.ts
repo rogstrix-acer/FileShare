@@ -36,6 +36,8 @@ export class AppwriteService {
     private projectId: string;
     private databaseId: string;
     private userCollectionId: string;
+    private filesCollectionId: string;
+    private sharesCollectionId: string;
     private bucketId: string;
     public storage: Storage;
 
@@ -45,6 +47,12 @@ export class AppwriteService {
         this.userCollectionId = this.configService.get<string>(
             'appwrite.userCollectionId',
         ) || 'users';
+        this.filesCollectionId = this.configService.get<string>(
+            'appwrite.filesCollectionId',
+        ) || 'files';
+        this.sharesCollectionId = this.configService.get<string>(
+            'appwrite.sharesCollectionId',
+        ) || 'shares';
 
         this.bucketId = this.configService.get<string>(
             'appwrite.bucketId',
@@ -284,7 +292,7 @@ export class AppwriteService {
         // Store share record in Appwrite database
         await this.databases.createDocument(
             this.databaseId,
-            'shares', // collection ID
+            this.sharesCollectionId,
             ID.unique(),
             {
                 fileId,
@@ -302,7 +310,7 @@ export class AppwriteService {
     private async createFileRecord(fileId: string, file: Express.Multer.File, userId: string) {
         return this.databases.createDocument(
             this.databaseId,
-            'files', // collection ID
+            this.filesCollectionId,
             ID.unique(),
             {
                 fileId,
@@ -320,7 +328,7 @@ export class AppwriteService {
         try {
             const files = await this.databases.listDocuments(
                 this.databaseId,
-                'files',
+                this.filesCollectionId,
                 [Query.equal('userId', userId), Query.orderDesc('createdAt')]
             );
             return files.documents;
@@ -334,7 +342,7 @@ export class AppwriteService {
         try {
             const files = await this.databases.listDocuments(
                 this.databaseId,
-                'files',
+                this.filesCollectionId,
                 [Query.equal('fileId', fileId)]
             );
             return files.documents.length > 0 ? files.documents[0] : null;
@@ -358,21 +366,21 @@ export class AppwriteService {
             // Delete file record from database
             await this.databases.deleteDocument(
                 this.databaseId,
-                'files',
+                this.filesCollectionId,
                 fileRecord.$id
             );
 
             // Delete associated shares
             const shares = await this.databases.listDocuments(
                 this.databaseId,
-                'shares',
+                this.sharesCollectionId,
                 [Query.equal('fileId', fileId)]
             );
 
             for (const share of shares.documents) {
                 await this.databases.deleteDocument(
                     this.databaseId,
-                    'shares',
+                    this.sharesCollectionId,
                     share.$id
                 );
             }
@@ -390,7 +398,7 @@ export class AppwriteService {
         try {
             const shares = await this.databases.listDocuments(
                 this.databaseId,
-                'shares',
+                this.sharesCollectionId,
                 [Query.equal('shareToken', shareToken)]
             );
             return shares.documents.length > 0 ? shares.documents[0] : null;
@@ -433,7 +441,7 @@ export class AppwriteService {
 
             await this.databases.updateDocument(
                 this.databaseId,
-                'shares',
+                this.sharesCollectionId,
                 share.$id,
                 {
                     downloadCount: (share.downloadCount || 0) + 1,
@@ -465,7 +473,7 @@ export class AppwriteService {
 
             await this.databases.deleteDocument(
                 this.databaseId,
-                'shares',
+                this.sharesCollectionId,
                 share.$id
             );
 
@@ -501,7 +509,7 @@ export class AppwriteService {
             // Get all shares for user's files
             const shares = await this.databases.listDocuments(
                 this.databaseId,
-                'shares',
+                this.sharesCollectionId,
                 [Query.equal('fileId', fileIds), Query.orderDesc('createdAt')]
             );
 
