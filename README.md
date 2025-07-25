@@ -90,7 +90,7 @@ A modern, secure file sharing platform built with Next.js, NestJS, and Appwrite.
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/Amanbig/FileShare.git
 cd FileShare
 ```
 
