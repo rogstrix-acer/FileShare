@@ -82,9 +82,7 @@ export default function AnalyticsDashboard() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      console.log('Fetching analytics data...');
       const response = await apiClient.getUserShares();
-      console.log('Analytics API response:', response);
       
       if (response.success && response.data) {
         // Use real data from backend
@@ -102,12 +100,10 @@ export default function AnalyticsDashboard() {
           dailyDownloads: generateMockDailyData() // TODO: Replace with real daily data when available
         })) || [];
 
-        console.log('Processed shares data:', realShares);
         setShares(realShares);
         
         // Calculate overview from real data
         const totalDownloads = realShares.reduce((sum, share) => sum + share.downloadCount, 0);
-        console.log('Total downloads calculated:', totalDownloads);
         const activeShares = realShares.filter(share => !share.isExpired && !share.isLimitReached).length;
         const expiredShares = realShares.filter(share => share.isExpired || share.isLimitReached).length;
         
@@ -124,9 +120,27 @@ export default function AnalyticsDashboard() {
               downloads: share.downloadCount
             }))
         });
+      } else {
+        // Set empty data if no shares
+        setShares([]);
+        setOverview({
+          totalShares: 0,
+          totalDownloads: 0,
+          activeShares: 0,
+          expiredShares: 0,
+          topFiles: []
+        });
       }
     } catch (error) {
-      console.error('Failed to fetch analytics:', error);
+      // Set empty data on error
+      setShares([]);
+      setOverview({
+        totalShares: 0,
+        totalDownloads: 0,
+        activeShares: 0,
+        expiredShares: 0,
+        topFiles: []
+      });
     } finally {
       setLoading(false);
     }

@@ -31,4 +31,4 @@ import appwriteConfig from './config/appwrite.config';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

@@ -270,7 +270,7 @@ export class AppwriteService {
     async uploadFile(file: Express.Multer.File, userId: string) {
         try {
             const fileId = ID.unique();
-            
+
             // Create a File-like object from the buffer
             const fileBlob = new Blob([file.buffer], { type: file.mimetype });
             const fileObject = new File([fileBlob], file.originalname, {
@@ -323,7 +323,7 @@ export class AppwriteService {
             const baseUrl = this.configService.get<string>('BASE_URL') || 'http://localhost:3000';
             const shareLink = `${baseUrl}/share/${shareToken}`;
             this.logger.log('Generated share link:', shareLink);
-            
+
             return shareLink;
         } catch (error) {
             this.logger.error('Error creating share link:', error);
@@ -358,7 +358,7 @@ export class AppwriteService {
             return files.documents;
         } catch (error) {
             this.logger.error('Error getting user files:', error);
-            throw new BadRequestException('Failed to get user files');
+            throw new BadRequestException('Failed to get user files: ' + error.message);
         }
     }
 
@@ -465,13 +465,13 @@ export class AppwriteService {
             }
 
             this.logger.log(`Incrementing download count for share: ${share.$id}`);
-            
+
             // Prepare update data - only include fields that exist
             const updateData: any = {};
-            
+
             // Always try to update downloadCount
             updateData.downloadCount = (share.downloadCount || 0) + 1;
-            
+
             // Only add lastDownloadAt if it's supported
             try {
                 updateData.lastDownloadAt = new Date().toISOString();
@@ -498,7 +498,7 @@ export class AppwriteService {
                 code: error.code,
                 type: error.type
             });
-            
+
             // Don't throw error, just log it and continue
             // This prevents download from failing due to count update issues
             this.logger.warn('Download count update failed, but continuing with download');
@@ -549,25 +549,46 @@ export class AppwriteService {
     async getUserShares(userId: string) {
         try {
             // Get all files for the user first
-            const userFiles = await this.getUserFiles(userId);
-            const fileIds = userFiles.map(file => file.fileId);
-
-            if (fileIds.length === 0) {
+            let userFiles;
+            try {
+                userFiles = await this.getUserFiles(userId);
+            } catch (filesError) {
+                this.logger.error('Failed to get user files:', filesError);
                 return [];
             }
 
-            // Get all shares for user's files
-            const shares = await this.databases.listDocuments(
-                this.databaseId,
-                this.sharesCollectionId,
-                [Query.equal('fileId', fileIds), Query.orderDesc('createdAt')]
-            );
+            if (userFiles.length === 0) {
+                return [];
+            }
 
-            return shares.documents;
+            const fileIds = userFiles.map(file => file.fileId);
+
+            // Query each fileId individually to avoid array issues
+            let allShares: any[] = [];
+
+            for (const fileId of fileIds) {
+                try {
+                    const shares = await this.databases.listDocuments(
+                        this.databaseId,
+                        this.sharesCollectionId,
+                        [Query.equal('fileId', fileId)]
+                    );
+                    allShares.push(...shares.documents);
+                } catch (individualError) {
+                    this.logger.warn(`Failed to get shares for fileId ${fileId}:`, individualError.message);
+                }
+            }
+
+            // Sort by createdAt descending
+            allShares.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            return allShares;
         } catch (error) {
             this.logger.error('Error getting user shares:', error);
-            throw new BadRequestException('Failed to get user shares');
+            throw new BadRequestException('Failed to get user shares: ' + error.message);
         }
     }
+
+
 
 }

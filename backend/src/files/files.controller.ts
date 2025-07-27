@@ -13,6 +13,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../guards/public.decorator';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard)
@@ -70,4 +71,6 @@ export class FilesController {
     async getUserShares(@Request() req: any) {
         return this.filesService.getUserShares(req.user.userId);
     }
+
+
 }

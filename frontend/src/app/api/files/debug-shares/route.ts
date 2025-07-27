@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const response = await fetch(`${NESTJS_BACKEND_URL}/files/my-shares`, {
+        const response = await fetch(`${NESTJS_BACKEND_URL}/files/debug-shares`, {
             method: 'GET',
             headers: {
                 'Authorization': authHeader,
@@ -25,23 +25,14 @@ export async function GET(request: NextRequest) {
 
         if (!response.ok) {
             return NextResponse.json(
-                { message: data.message || 'Failed to fetch shares' },
+                { message: data.message || 'Failed to fetch debug shares' },
                 { status: response.status }
-            );
-        }
-
-        // Check if the backend response indicates failure
-        if (!data.success) {
-            console.log('Backend returned failure:', data);
-            return NextResponse.json(
-                { message: data.message || 'Backend request failed' },
-                { status: 400 }
             );
         }
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Get shares API error:', error);
+        console.error('Debug shares API error:', error);
         return NextResponse.json(
             { message: 'Internal server error' },
             { status: 500 }
