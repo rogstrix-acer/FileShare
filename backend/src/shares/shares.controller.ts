@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Delete, Param, Body, Res, UseGuards, Request } from '@nestjs/common';
-import { Response } from 'express';
 import { SharesService } from './shares.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { Public } from '../guards/public.decorator';
+import { Response } from 'express';
 
 @Controller('shares')
 @UseGuards(JwtAuthGuard)

@@ -56,7 +56,10 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
     try {
       const response = await apiClient.getUserFiles();
       if (response.success && response.data) {
-        setFiles(response.data.files || []);
+        const files = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any)?.files || [];
+        setFiles(files);
       }
     } catch (error) {
       console.error('Failed to fetch files:', error);
@@ -69,11 +72,11 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
     setShareLoading(fileId);
     try {
       const shareData: any = {};
-      
+
       if (expiryDate) {
         shareData.expiresAt = new Date(expiryDate).toISOString();
       }
-      
+
       if (maxDownloads) {
         shareData.maxDownloads = parseInt(maxDownloads);
       }
@@ -83,7 +86,7 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
         const shareUrl = response.data.shareLink;
         await navigator.clipboard.writeText(shareUrl);
         alert('Share link created and copied to clipboard!');
-        
+
         // Reset form
         setShowShareModal(null);
         setExpiryDate('');

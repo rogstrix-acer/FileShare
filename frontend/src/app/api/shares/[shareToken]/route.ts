@@ -4,10 +4,11 @@ const NESTJS_BACKEND_URL = process.env.NESTJS_BACKEND_URL || 'http://localhost:3
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { shareToken: string } }
+  { params }: { params: Promise<{ shareToken: string }> }
 ) {
   try {
-    const response = await fetch(`${NESTJS_BACKEND_URL}/shares/${params.shareToken}`, {
+    const { shareToken } = await params;
+    const response = await fetch(`${NESTJS_BACKEND_URL}/shares/${shareToken}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
