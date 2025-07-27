@@ -40,7 +40,7 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         setError(result.error || 'Authentication failed');
       }
     } catch (error) {
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred '+error);
     } finally {
       setLoading(false);
     }

@@ -13,18 +13,12 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line
+    ResponsiveContainer
 } from 'recharts';
 import {
-    Download,
     Share2,
-    Calendar,
-    Clock,
     Copy,
     ExternalLink,
-    Trash2,
     Plus,
     Eye
 } from 'lucide-react';
@@ -87,8 +81,8 @@ export default function FileAnalytics() {
             console.log('Extracted shares:', shares);
 
             // Combine files with their shares
-            const filesWithShares: FileWithShares[] = userFiles.map((file: any) => {
-                const fileShares = shares.filter((share: any) => share.fileId === file.fileId);
+            const filesWithShares: FileWithShares[] = userFiles.map((file: { id: string; fileId: string; originalName: string; size: number; mimeType: string; createdAt: string }) => {
+                const fileShares = shares.filter((share: { fileId: string }) => share.fileId === file.fileId);
 
                 return {
                     id: file.id,
@@ -98,9 +92,9 @@ export default function FileAnalytics() {
                     mimeType: file.mimeType,
                     createdAt: file.createdAt,
                     shares: fileShares,
-                    totalDownloads: fileShares.reduce((sum: number, share: any) => sum + (share.downloadCount || 0), 0),
-                    activeShares: fileShares.filter((share: any) => !share.isExpired && !share.isLimitReached).length,
-                    expiredShares: fileShares.filter((share: any) => share.isExpired || share.isLimitReached).length
+                    totalDownloads: fileShares.reduce((sum: number, share: { downloadCount?: number }) => sum + (share.downloadCount || 0), 0),
+                    activeShares: fileShares.filter((share: { isExpired?: boolean; isLimitReached?: boolean }) => !share.isExpired && !share.isLimitReached).length,
+                    expiredShares: fileShares.filter((share: { isExpired?: boolean; isLimitReached?: boolean }) => share.isExpired || share.isLimitReached).length
                 };
             });
 
@@ -115,7 +109,7 @@ export default function FileAnalytics() {
 
     const handleCreateShare = async (fileId: string) => {
         try {
-            const shareData: any = {};
+            const shareData: { expiresAt?: string; maxDownloads?: number } = {};
 
             if (expiryDate) {
                 shareData.expiresAt = new Date(expiryDate).toISOString();

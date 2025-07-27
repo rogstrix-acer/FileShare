@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api';
 
 interface SharePageProps {
   shareToken: string;
@@ -31,10 +30,6 @@ export default function SharePage({ shareToken }: SharePageProps) {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchSharedFile();
-  }, [shareToken]);
-
   const fetchSharedFile = async () => {
     try {
       const response = await fetch(`/api/shares/${shareToken}`);
@@ -46,11 +41,15 @@ export default function SharePage({ shareToken }: SharePageProps) {
         setError(data.message || 'Share not found');
       }
     } catch (error) {
-      setError('Failed to load shared file');
+      setError('Failed to load shared file '+error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchSharedFile();
+  }, [shareToken,fetchSharedFile]);
 
   const handleDownload = async () => {
     setDownloading(true);
