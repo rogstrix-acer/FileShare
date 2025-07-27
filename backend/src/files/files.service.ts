@@ -118,21 +118,59 @@ export class FilesService {
 
     async getUserShares(userId: string) {
         try {
+            console.log('Getting shares for user:', userId);
             const shares = await this.appwriteService.getUserShares(userId);
+            console.log('Raw shares from Appwrite:', shares.length);
+            
+            // Enrich shares with file information
+            const enrichedShares = await Promise.all(
+                shares.map(async (share) => {
+                    try {
+                        console.log('Processing share:', share.$id, 'for fileId:', share.fileId);
+                        const file = await this.appwriteService.getFileById(share.fileId);
+                        
+                        const enrichedShare = {
+                            id: share.$id,
+                            fileId: share.fileId,
+                            fileName: file?.originalName || `File_${share.fileId.slice(0, 8)}`,
+                            shareToken: share.shareToken,
+                            downloadCount: share.downloadCount || 0,
+                            maxDownloads: share.maxDownloads,
+                            expiresAt: share.expiresAt,
+                            createdAt: share.createdAt,
+                            isExpired: share.expiresAt ? new Date(share.expiresAt) < new Date() : false,
+                            isLimitReached: share.maxDownloads ? (share.downloadCount || 0) >= share.maxDownloads : false
+                        };
+                        
+                        console.log('Enriched share:', enrichedShare);
+                        return enrichedShare;
+                    } catch (fileError) {
+                        console.warn(`Failed to get file info for share ${share.$id}:`, fileError.message);
+                        // Return share data even if file lookup fails
+                        return {
+                            id: share.$id,
+                            fileId: share.fileId,
+                            fileName: `File_${share.fileId.slice(0, 8)}`,
+                            shareToken: share.shareToken,
+                            downloadCount: share.downloadCount || 0,
+                            maxDownloads: share.maxDownloads,
+                            expiresAt: share.expiresAt,
+                            createdAt: share.createdAt,
+                            isExpired: share.expiresAt ? new Date(share.expiresAt) < new Date() : false,
+                            isLimitReached: share.maxDownloads ? (share.downloadCount || 0) >= share.maxDownloads : false
+                        };
+                    }
+                })
+            );
+
+            console.log('Final enriched shares:', enrichedShares.length);
             return {
                 success: true,
                 message: 'Shares retrieved successfully',
-                shares: shares.map(share => ({
-                    id: share.$id,
-                    fileId: share.fileId,
-                    shareToken: share.shareToken,
-                    downloadCount: share.downloadCount,
-                    maxDownloads: share.maxDownloads,
-                    expiresAt: share.expiresAt,
-                    createdAt: share.createdAt
-                }))
+                shares: enrichedShares
             };
         } catch (error) {
+            console.error('Error in getUserShares:', error);
             return {
                 success: false,
                 message: error.message || 'Failed to get shares'

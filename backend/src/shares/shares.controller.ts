@@ -19,15 +19,28 @@ export class SharesController {
     @Post(':shareToken/download')
     async downloadSharedFile(
         @Param('shareToken') shareToken: string,
-        @Res() res: Response
+        @Res({ passthrough: true }) res: Response
     ) {
-        const result = await this.sharesService.downloadSharedFile(shareToken);
-        
-        if (result.success) {
-            // In a real implementation, you'd stream the file or redirect to download URL
-            return res.redirect(result.downloadUrl!);
-        } else {
-            return res.status(404).json(result);
+        try {
+            const result = await this.sharesService.downloadSharedFile(shareToken);
+            
+            if (result.success) {
+                // Return the download URL instead of redirecting
+                return {
+                    success: true,
+                    downloadUrl: result.downloadUrl,
+                    message: result.message
+                };
+            } else {
+                res.status(404);
+                return result;
+            }
+        } catch (error) {
+            res.status(500);
+            return {
+                success: false,
+                message: 'Internal server error'
+            };
         }
     }
 

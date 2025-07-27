@@ -159,6 +159,10 @@ export class ApiClient {
       method: 'POST',
     });
   }
+
+  async getUserShares() {
+    return this.request<{ shares: any[] }>('/files/my-shares');
+  }
 }
 
 export const apiClient = new ApiClient();

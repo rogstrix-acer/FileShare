@@ -64,11 +64,15 @@ export class SharesService {
 
             const share = validation.share;
 
-            // Increment download count
-            await this.appwriteService.incrementDownloadCount(shareToken);
-
-            // Get download URL
+            // Get download URL first
             const downloadUrl = await this.appwriteService.getFileDownloadUrl(share.fileId);
+
+            // Try to increment download count (don't fail if this fails)
+            try {
+                await this.appwriteService.incrementDownloadCount(shareToken);
+            } catch (error) {
+                console.warn('Failed to update download count, but continuing with download:', error.message);
+            }
 
             return {
                 success: true,

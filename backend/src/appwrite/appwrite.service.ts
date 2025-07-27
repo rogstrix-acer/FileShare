@@ -294,24 +294,41 @@ export class AppwriteService {
     }
 
     async createShareLink(fileId: string, expiresAt?: Date) {
-        const shareToken = ID.unique();
+        try {
+            const shareToken = ID.unique();
+            this.logger.log(`Creating share link for fileId: ${fileId}, shareToken: ${shareToken}`);
 
-        // Store share record in Appwrite database
-        await this.databases.createDocument(
-            this.databaseId,
-            this.sharesCollectionId,
-            ID.unique(),
-            {
+            const shareData = {
                 fileId,
                 shareToken,
-                expiresAt: expiresAt?.toISOString(),
+                expiresAt: expiresAt?.toISOString() || null,
                 downloadCount: 0,
+                maxDownloads: null,
+                lastDownloadAt: null,
                 createdAt: new Date().toISOString()
-            }
-        );
+            };
 
-        const baseUrl = this.configService.get<string>('BASE_URL') || 'http://localhost:3000';
-        return `${baseUrl}/share/${shareToken}`;
+            this.logger.log('Share data to create:', shareData);
+
+            // Store share record in Appwrite database
+            const document = await this.databases.createDocument(
+                this.databaseId,
+                this.sharesCollectionId,
+                ID.unique(),
+                shareData
+            );
+
+            this.logger.log('Share document created:', document.$id);
+
+            const baseUrl = this.configService.get<string>('BASE_URL') || 'http://localhost:3000';
+            const shareLink = `${baseUrl}/share/${shareToken}`;
+            this.logger.log('Generated share link:', shareLink);
+            
+            return shareLink;
+        } catch (error) {
+            this.logger.error('Error creating share link:', error);
+            throw new BadRequestException('Failed to create share link: ' + error.message);
+        }
     }
 
     private async createFileRecord(fileId: string, file: Express.Multer.File, userId: string) {
@@ -443,23 +460,49 @@ export class AppwriteService {
         try {
             const share = await this.getShareByToken(shareToken);
             if (!share) {
+                this.logger.error(`Share not found for token: ${shareToken}`);
                 throw new BadRequestException('Share not found');
             }
 
-            await this.databases.updateDocument(
+            this.logger.log(`Incrementing download count for share: ${share.$id}`);
+            
+            // Prepare update data - only include fields that exist
+            const updateData: any = {};
+            
+            // Always try to update downloadCount
+            updateData.downloadCount = (share.downloadCount || 0) + 1;
+            
+            // Only add lastDownloadAt if it's supported
+            try {
+                updateData.lastDownloadAt = new Date().toISOString();
+            } catch (e) {
+                // If lastDownloadAt field doesn't exist, remove it
+                delete updateData.lastDownloadAt;
+            }
+
+            this.logger.log('Update data:', updateData);
+
+            const updatedDocument = await this.databases.updateDocument(
                 this.databaseId,
                 this.sharesCollectionId,
                 share.$id,
-                {
-                    downloadCount: (share.downloadCount || 0) + 1,
-                    lastDownloadAt: new Date().toISOString()
-                }
+                updateData
             );
 
+            this.logger.log(`Successfully updated download count to: ${updateData.downloadCount}`);
             return true;
         } catch (error) {
             this.logger.error('Error incrementing download count:', error);
-            throw new BadRequestException('Failed to update download count');
+            this.logger.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                type: error.type
+            });
+            
+            // Don't throw error, just log it and continue
+            // This prevents download from failing due to count update issues
+            this.logger.warn('Download count update failed, but continuing with download');
+            return false;
         }
     }
 

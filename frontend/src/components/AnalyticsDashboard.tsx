@@ -73,40 +73,50 @@ export default function AnalyticsDashboard() {
     fetchAnalytics();
   }, [selectedTimeRange]);
 
+  useEffect(() => {
+    // Auto-refresh analytics every 30 seconds
+    const interval = setInterval(fetchAnalytics, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      // This would be implemented in the backend
+      console.log('Fetching analytics data...');
       const response = await apiClient.getUserShares();
+      console.log('Analytics API response:', response);
+      
       if (response.success && response.data) {
-        // Mock data for demonstration - replace with actual API call
-        const mockShares: ShareAnalytics[] = response.data.shares?.map((share: any) => ({
+        // Use real data from backend
+        const realShares: ShareAnalytics[] = response.data.shares?.map((share: any) => ({
           id: share.id,
           fileId: share.fileId,
-          fileName: `File_${share.fileId.slice(0, 8)}.pdf`,
+          fileName: share.fileName || `File_${share.fileId.slice(0, 8)}`,
           shareToken: share.shareToken,
-          downloadCount: share.downloadCount || Math.floor(Math.random() * 50),
+          downloadCount: share.downloadCount || 0,
           maxDownloads: share.maxDownloads,
           expiresAt: share.expiresAt,
           createdAt: share.createdAt,
-          isExpired: share.expiresAt ? new Date(share.expiresAt) < new Date() : false,
-          isLimitReached: share.maxDownloads ? share.downloadCount >= share.maxDownloads : false,
-          dailyDownloads: generateMockDailyData()
+          isExpired: share.isExpired || false,
+          isLimitReached: share.isLimitReached || false,
+          dailyDownloads: generateMockDailyData() // TODO: Replace with real daily data when available
         })) || [];
 
-        setShares(mockShares);
+        console.log('Processed shares data:', realShares);
+        setShares(realShares);
         
-        // Calculate overview
-        const totalDownloads = mockShares.reduce((sum, share) => sum + share.downloadCount, 0);
-        const activeShares = mockShares.filter(share => !share.isExpired && !share.isLimitReached).length;
-        const expiredShares = mockShares.filter(share => share.isExpired || share.isLimitReached).length;
+        // Calculate overview from real data
+        const totalDownloads = realShares.reduce((sum, share) => sum + share.downloadCount, 0);
+        console.log('Total downloads calculated:', totalDownloads);
+        const activeShares = realShares.filter(share => !share.isExpired && !share.isLimitReached).length;
+        const expiredShares = realShares.filter(share => share.isExpired || share.isLimitReached).length;
         
         setOverview({
-          totalShares: mockShares.length,
+          totalShares: realShares.length,
           totalDownloads,
           activeShares,
           expiredShares,
-          topFiles: mockShares
+          topFiles: realShares
             .sort((a, b) => b.downloadCount - a.downloadCount)
             .slice(0, 5)
             .map(share => ({
@@ -255,6 +265,14 @@ export default function AnalyticsDashboard() {
           </TabsList>
           
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchAnalytics}
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </Button>
             <Button
               variant={selectedTimeRange === '7d' ? 'default' : 'outline'}
               size="sm"

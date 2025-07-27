@@ -1,12 +1,12 @@
-import { 
-    Controller, 
-    Post, 
-    Get, 
-    Delete, 
-    Param, 
-    Body, 
-    UseInterceptors, 
-    UploadedFile, 
+import {
+    Controller,
+    Post,
+    Get,
+    Delete,
+    Param,
+    Body,
+    UseInterceptors,
+    UploadedFile,
     UseGuards,
     Request
 } from '@nestjs/common';
@@ -17,7 +17,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
-    constructor(private filesService: FilesService) {}
+    constructor(private filesService: FilesService) { }
 
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
@@ -37,7 +37,7 @@ export class FilesController {
     @Post(':fileId/share')
     async createShareLink(
         @Param('fileId') fileId: string,
-        @Body() shareData: { 
+        @Body() shareData: {
             expiresAt?: string;
             maxDownloads?: number;
         },
@@ -51,6 +51,7 @@ export class FilesController {
     async getUserFiles(@Request() req: any) {
         return this.filesService.getUserFiles(req.user.userId);
     }
+
 
     @Get(':fileId')
     async getFileInfo(@Param('fileId') fileId: string) {
