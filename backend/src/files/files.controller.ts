@@ -45,11 +45,14 @@ export class FilesController {
         @Request() req: any
     ) {
         const expiresAt = shareData.expiresAt ? new Date(shareData.expiresAt) : undefined;
-        return this.filesService.createShareLink(fileId, req.user.userId, expiresAt);
+        const maxDownloads = shareData.maxDownloads || undefined;
+        return this.filesService.createShareLink(fileId, req.user.userId, expiresAt, maxDownloads);
     }
 
     @Get('my-files')
     async getUserFiles(@Request() req: any) {
+        console.log('getUserFiles controller - user:', req.user);
+        console.log('getUserFiles controller - userId:', req.user?.userId);
         return this.filesService.getUserFiles(req.user.userId);
     }
 
@@ -65,11 +68,6 @@ export class FilesController {
         @Request() req: any
     ) {
         return this.filesService.deleteFile(fileId, req.user.userId);
-    }
-
-    @Get('my-shares')
-    async getUserShares(@Request() req: any) {
-        return this.filesService.getUserShares(req.user.userId);
     }
 
 

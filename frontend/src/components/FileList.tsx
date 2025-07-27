@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   FileText,
   Image,
@@ -43,6 +44,9 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
   const [loading, setLoading] = useState(true);
   const [shareLoading, setShareLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showShareModal, setShowShareModal] = useState<string | null>(null);
+  const [expiryDate, setExpiryDate] = useState('');
+  const [maxDownloads, setMaxDownloads] = useState('');
 
   useEffect(() => {
     fetchFiles();
@@ -64,12 +68,26 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
   const handleCreateShare = async (fileId: string) => {
     setShareLoading(fileId);
     try {
-      const response = await apiClient.createShareLink(fileId);
+      const shareData: any = {};
+      
+      if (expiryDate) {
+        shareData.expiresAt = new Date(expiryDate).toISOString();
+      }
+      
+      if (maxDownloads) {
+        shareData.maxDownloads = parseInt(maxDownloads);
+      }
+
+      const response = await apiClient.createShareLink(fileId, shareData.expiresAt);
       if (response.success && response.data) {
         const shareUrl = response.data.shareLink;
         await navigator.clipboard.writeText(shareUrl);
-        // You could add a toast notification here
-        alert('Share link copied to clipboard!');
+        alert('Share link created and copied to clipboard!');
+        
+        // Reset form
+        setShowShareModal(null);
+        setExpiryDate('');
+        setMaxDownloads('');
       } else {
         alert('Failed to create share link: ' + response.error);
       }
@@ -240,7 +258,7 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
                       <div className="flex items-center space-x-2 pt-2">
                         <Button
                           size="sm"
-                          onClick={() => handleCreateShare(file.fileId)}
+                          onClick={() => setShowShareModal(file.fileId)}
                           disabled={shareLoading === file.fileId}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         >

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import FileUpload from './FileUpload';
 import {motion} from 'framer-motion'
 import FileList from './FileList';
-import AnalyticsDashboard from './AnalyticsDashboard';
+import FileAnalytics from './FileAnalytics';
 import { 
   Upload, 
   Files, 
@@ -203,10 +203,10 @@ export default function Dashboard() {
               {activeTab === 'analytics' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h2>
-                    <p className="text-gray-600 dark:text-gray-400">Track your file sharing performance and downloads</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">File Analytics</h2>
+                    <p className="text-gray-600 dark:text-gray-400">Track individual file sharing performance and manage share links</p>
                   </div>
-                  <AnalyticsDashboard />
+                  <FileAnalytics />
                 </div>
               )}
 

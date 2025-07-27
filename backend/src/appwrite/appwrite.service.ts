@@ -293,7 +293,7 @@ export class AppwriteService {
         }
     }
 
-    async createShareLink(fileId: string, expiresAt?: Date) {
+    async createShareLink(fileId: string, expiresAt?: Date, maxDownloads?: number) {
         try {
             const shareToken = ID.unique();
             this.logger.log(`Creating share link for fileId: ${fileId}, shareToken: ${shareToken}`);
@@ -303,12 +303,14 @@ export class AppwriteService {
                 shareToken,
                 expiresAt: expiresAt?.toISOString() || null,
                 downloadCount: 0,
-                maxDownloads: null,
+                maxDownloads: maxDownloads || null,
                 lastDownloadAt: null,
                 createdAt: new Date().toISOString()
             };
 
             this.logger.log('Share data to create:', shareData);
+            this.logger.log('Database ID:', this.databaseId);
+            this.logger.log('Shares Collection ID:', this.sharesCollectionId);
 
             // Store share record in Appwrite database
             const document = await this.databases.createDocument(
@@ -318,7 +320,8 @@ export class AppwriteService {
                 shareData
             );
 
-            this.logger.log('Share document created:', document.$id);
+            this.logger.log('Share document created successfully:', document.$id);
+            this.logger.log('Created document data:', document);
 
             const baseUrl = this.configService.get<string>('BASE_URL') || 'http://localhost:3000';
             const shareLink = `${baseUrl}/share/${shareToken}`;
@@ -327,6 +330,11 @@ export class AppwriteService {
             return shareLink;
         } catch (error) {
             this.logger.error('Error creating share link:', error);
+            this.logger.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                type: error.type
+            });
             throw new BadRequestException('Failed to create share link: ' + error.message);
         }
     }
@@ -350,14 +358,19 @@ export class AppwriteService {
     // File Management Methods
     async getUserFiles(userId: string) {
         try {
+            this.logger.log(`Getting files for userId: ${userId}`);
             const files = await this.databases.listDocuments(
                 this.databaseId,
                 this.filesCollectionId,
                 [Query.equal('userId', userId), Query.orderDesc('createdAt')]
             );
+            this.logger.log(`Found ${files.documents.length} files for user ${userId}`);
             return files.documents;
         } catch (error) {
             this.logger.error('Error getting user files:', error);
+            this.logger.error('Database ID:', this.databaseId);
+            this.logger.error('Files Collection ID:', this.filesCollectionId);
+            this.logger.error('User ID:', userId);
             throw new BadRequestException('Failed to get user files: ' + error.message);
         }
     }
@@ -548,43 +561,60 @@ export class AppwriteService {
 
     async getUserShares(userId: string) {
         try {
-            // Get all files for the user first
-            let userFiles;
-            try {
-                userFiles = await this.getUserFiles(userId);
-            } catch (filesError) {
-                this.logger.error('Failed to get user files:', filesError);
-                return [];
-            }
+            this.logger.log(`Getting shares for userId: ${userId}`);
+
+            // Get user files first to get the fileIds that belong to this user
+            const userFiles = await this.getUserFiles(userId);
+            this.logger.log(`Found ${userFiles.length} files for user`);
 
             if (userFiles.length === 0) {
+                this.logger.log('No files found, returning empty shares');
                 return [];
             }
 
             const fileIds = userFiles.map(file => file.fileId);
+            this.logger.log('File IDs owned by user:', fileIds);
 
-            // Query each fileId individually to avoid array issues
+            // Query shares for each fileId
             let allShares: any[] = [];
 
             for (const fileId of fileIds) {
                 try {
+                    this.logger.log(`Querying shares for fileId: ${fileId}`);
                     const shares = await this.databases.listDocuments(
                         this.databaseId,
                         this.sharesCollectionId,
                         [Query.equal('fileId', fileId)]
                     );
+                    this.logger.log(`Found ${shares.documents.length} shares for fileId ${fileId}`);
+                    if (shares.documents.length > 0) {
+                        this.logger.log('Share documents:', shares.documents);
+                    }
                     allShares.push(...shares.documents);
                 } catch (individualError) {
-                    this.logger.warn(`Failed to get shares for fileId ${fileId}:`, individualError.message);
+                    this.logger.error(`Failed to get shares for fileId ${fileId}:`, individualError);
                 }
             }
 
             // Sort by createdAt descending
             allShares.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+            this.logger.log(`Total shares found: ${allShares.length}`);
+
+            if (allShares.length > 0) {
+                this.logger.log('User shares:', allShares.map(s => ({
+                    id: s.$id,
+                    fileId: s.fileId,
+                    shareToken: s.shareToken,
+                    downloadCount: s.downloadCount
+                })));
+            }
+
             return allShares;
         } catch (error) {
             this.logger.error('Error getting user shares:', error);
+            this.logger.error('Database ID:', this.databaseId);
+            this.logger.error('Shares Collection ID:', this.sharesCollectionId);
             throw new BadRequestException('Failed to get user shares: ' + error.message);
         }
     }

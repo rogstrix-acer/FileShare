@@ -7,7 +7,14 @@ import { Public } from '../guards/public.decorator';
 @Controller('shares')
 @UseGuards(JwtAuthGuard)
 export class SharesController {
-    constructor(private sharesService: SharesService) {}
+    constructor(private sharesService: SharesService) { }
+
+    @Get('my-shares')
+    async getUserShares(@Request() req: any) {
+        console.log('SharesController: getUserShares - user:', req.user);
+        console.log('SharesController: getUserShares - userId:', req.user?.userId);
+        return this.sharesService.getUserShares(req.user.userId);
+    }
 
     @Public()
     @Get(':shareToken')
@@ -23,7 +30,7 @@ export class SharesController {
     ) {
         try {
             const result = await this.sharesService.downloadSharedFile(shareToken);
-            
+
             if (result.success) {
                 // Return the download URL instead of redirecting
                 return {

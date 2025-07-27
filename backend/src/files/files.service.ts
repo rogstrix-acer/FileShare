@@ -30,15 +30,30 @@ export class FilesService {
         }
     }
 
-    async createShareLink(fileId: string, userId: string, expiresAt?: Date) {
+    async createShareLink(fileId: string, userId: string, expiresAt?: Date, maxDownloads?: number) {
         try {
-            // Verify file belongs to user (you might want to add this check)
-            const shareLink = await this.appwriteService.createShareLink(fileId, expiresAt);
+            // Verify file belongs to user
+            const file = await this.appwriteService.getFileById(fileId);
+            if (!file) {
+                return {
+                    success: false,
+                    message: 'File not found'
+                };
+            }
+            if (file.userId !== userId) {
+                return {
+                    success: false,
+                    message: 'Access denied'
+                };
+            }
+
+            const shareLink = await this.appwriteService.createShareLink(fileId, expiresAt, maxDownloads);
             return {
                 success: true,
                 message: 'Share link created successfully',
                 shareLink,
-                expiresAt: expiresAt?.toISOString()
+                expiresAt: expiresAt?.toISOString(),
+                maxDownloads
             };
         } catch (error) {
             return {
@@ -50,7 +65,11 @@ export class FilesService {
 
     async getUserFiles(userId: string) {
         try {
+            console.log('getUserFiles called for userId:', userId);
             const files = await this.appwriteService.getUserFiles(userId);
+            console.log('Raw files from appwrite:', files);
+            console.log('Number of files found:', files.length);
+
             return {
                 success: true,
                 message: 'Files retrieved successfully',
@@ -64,6 +83,7 @@ export class FilesService {
                 }))
             };
         } catch (error) {
+            console.error('Error in getUserFiles:', error);
             return {
                 success: false,
                 message: error.message || 'Failed to get files'
@@ -116,62 +136,7 @@ export class FilesService {
         }
     }
 
-    async getUserShares(userId: string) {
-        try {
-            // First, get user files
-            try {
-                const userFiles = await this.appwriteService.getUserFiles(userId);
-                if (userFiles.length === 0) {
-                    return {
-                        success: true,
-                        message: 'No files found, so no shares',
-                        shares: []
-                    };
-                }
-            } catch (filesError) {
-                return {
-                    success: false,
-                    message: 'Failed to get user files: ' + filesError.message
-                };
-            }
 
-            // Get shares for user's files
-            const shares = await this.appwriteService.getUserShares(userId);
-
-            if (shares.length === 0) {
-                return {
-                    success: true,
-                    message: 'No shares found',
-                    shares: []
-                };
-            }
-
-            // Return basic share data
-            const basicShares = shares.map((share: any) => ({
-                id: share.$id,
-                fileId: share.fileId,
-                fileName: `File_${share.fileId.slice(0, 8)}`,
-                shareToken: share.shareToken,
-                downloadCount: share.downloadCount || 0,
-                maxDownloads: share.maxDownloads,
-                expiresAt: share.expiresAt,
-                createdAt: share.createdAt,
-                isExpired: share.expiresAt ? new Date(share.expiresAt) < new Date() : false,
-                isLimitReached: share.maxDownloads ? (share.downloadCount || 0) >= share.maxDownloads : false
-            }));
-
-            return {
-                success: true,
-                message: 'Shares retrieved successfully',
-                shares: basicShares
-            };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message || 'Failed to get shares'
-            };
-        }
-    }
 
 
 }
