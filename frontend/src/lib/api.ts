@@ -136,10 +136,10 @@ export class ApiClient {
     return this.request<any[]>('/files/my-files');
   }
 
-  async createShareLink(fileId: string, expiresAt?: string) {
+  async createShareLink(fileId: string, expiresAt?: string, maxDownloads?: number) {
     return this.request<{ shareLink: string }>(`/files/${fileId}/share`, {
       method: 'POST',
-      body: JSON.stringify({ expiresAt }),
+      body: JSON.stringify({ expiresAt, maxDownloads }),
     });
   }
 
@@ -158,6 +158,10 @@ export class ApiClient {
     return this.request<{ downloadUrl: string }>(`/shares/${shareToken}/download`, {
       method: 'POST',
     });
+  }
+
+  async getUserShares() {
+    return this.request<{ shares: any[] }>('/shares/my-shares');
   }
 }
 

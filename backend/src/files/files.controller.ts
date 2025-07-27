@@ -1,23 +1,24 @@
-import { 
-    Controller, 
-    Post, 
-    Get, 
-    Delete, 
-    Param, 
-    Body, 
-    UseInterceptors, 
-    UploadedFile, 
+import {
+    Controller,
+    Post,
+    Get,
+    Delete,
+    Param,
+    Body,
+    UseInterceptors,
+    UploadedFile,
     UseGuards,
     Request
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { Public } from '../guards/public.decorator';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard)
 export class FilesController {
-    constructor(private filesService: FilesService) {}
+    constructor(private filesService: FilesService) { }
 
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
@@ -37,20 +38,24 @@ export class FilesController {
     @Post(':fileId/share')
     async createShareLink(
         @Param('fileId') fileId: string,
-        @Body() shareData: { 
+        @Body() shareData: {
             expiresAt?: string;
             maxDownloads?: number;
         },
         @Request() req: any
     ) {
         const expiresAt = shareData.expiresAt ? new Date(shareData.expiresAt) : undefined;
-        return this.filesService.createShareLink(fileId, req.user.userId, expiresAt);
+        const maxDownloads = shareData.maxDownloads || undefined;
+        return this.filesService.createShareLink(fileId, req.user.userId, expiresAt, maxDownloads);
     }
 
     @Get('my-files')
     async getUserFiles(@Request() req: any) {
+        console.log('getUserFiles controller - user:', req.user);
+        console.log('getUserFiles controller - userId:', req.user?.userId);
         return this.filesService.getUserFiles(req.user.userId);
     }
+
 
     @Get(':fileId')
     async getFileInfo(@Param('fileId') fileId: string) {
@@ -65,8 +70,5 @@ export class FilesController {
         return this.filesService.deleteFile(fileId, req.user.userId);
     }
 
-    @Get('my-shares')
-    async getUserShares(@Request() req: any) {
-        return this.filesService.getUserShares(req.user.userId);
-    }
+
 }

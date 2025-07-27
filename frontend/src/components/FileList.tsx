@@ -1,7 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { apiClient } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  FileText,
+  Image,
+  Video,
+  Music,
+  Archive,
+  File,
+  Share2,
+  Trash2,
+  Download,
+  Calendar,
+  HardDrive,
+  Copy,
+  ExternalLink,
+  MoreVertical,
+  Upload
+} from 'lucide-react';
 
 interface FileItem {
   id: string;
@@ -14,12 +36,17 @@ interface FileItem {
 
 interface FileListProps {
   refreshTrigger: number;
+  onSwitchToUpload?: () => void;
 }
 
-export default function FileList({ refreshTrigger }: FileListProps) {
+export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [shareLoading, setShareLoading] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showShareModal, setShowShareModal] = useState<string | null>(null);
+  const [expiryDate, setExpiryDate] = useState('');
+  const [maxDownloads, setMaxDownloads] = useState('');
 
   useEffect(() => {
     fetchFiles();
@@ -29,7 +56,10 @@ export default function FileList({ refreshTrigger }: FileListProps) {
     try {
       const response = await apiClient.getUserFiles();
       if (response.success && response.data) {
-        setFiles(response.data.files || []);
+        const files = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any)?.files || [];
+        setFiles(files);
       }
     } catch (error) {
       console.error('Failed to fetch files:', error);
@@ -41,11 +71,26 @@ export default function FileList({ refreshTrigger }: FileListProps) {
   const handleCreateShare = async (fileId: string) => {
     setShareLoading(fileId);
     try {
-      const response = await apiClient.createShareLink(fileId);
+      const shareData: any = {};
+
+      if (expiryDate) {
+        shareData.expiresAt = new Date(expiryDate).toISOString();
+      }
+
+      if (maxDownloads) {
+        shareData.maxDownloads = parseInt(maxDownloads);
+      }
+
+      const response = await apiClient.createShareLink(fileId, shareData.expiresAt);
       if (response.success && response.data) {
         const shareUrl = response.data.shareLink;
         await navigator.clipboard.writeText(shareUrl);
-        alert('Share link copied to clipboard!');
+        alert('Share link created and copied to clipboard!');
+
+        // Reset form
+        setShowShareModal(null);
+        setExpiryDate('');
+        setMaxDownloads('');
       } else {
         alert('Failed to create share link: ' + response.error);
       }
@@ -73,6 +118,24 @@ export default function FileList({ refreshTrigger }: FileListProps) {
     }
   };
 
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return Image;
+    if (mimeType.startsWith('video/')) return Video;
+    if (mimeType.startsWith('audio/')) return Music;
+    if (mimeType.includes('pdf') || mimeType.includes('document')) return FileText;
+    if (mimeType.includes('zip') || mimeType.includes('rar')) return Archive;
+    return File;
+  };
+
+  const getFileTypeColor = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return 'bg-green-100 text-green-800';
+    if (mimeType.startsWith('video/')) return 'bg-purple-100 text-purple-800';
+    if (mimeType.startsWith('audio/')) return 'bg-yellow-100 text-yellow-800';
+    if (mimeType.includes('pdf')) return 'bg-red-100 text-red-800';
+    if (mimeType.includes('document')) return 'bg-blue-100 text-blue-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -93,104 +156,206 @@ export default function FileList({ refreshTrigger }: FileListProps) {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (files.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <p>No files uploaded yet. Upload your first file above!</p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-12"
+      >
+        <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <FileText className="w-12 h-12 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No files yet</h3>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          Upload your first file to get started with sharing
+        </p>
+        <Button
+          onClick={onSwitchToUpload}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+        >
+          <Upload className="w-4 h-4 mr-2" />
+          Upload File
+        </Button>
+      </motion.div>
     );
   }
 
   return (
-    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-      <ul className="divide-y divide-gray-200">
-        {files.map((file) => (
-          <li key={file.id} className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <svg
-                      className="h-8 w-8 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {file.originalName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {formatFileSize(file.size)} • {formatDate(file.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleCreateShare(file.fileId)}
-                  disabled={shareLoading === file.fileId}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {shareLoading === file.fileId ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-                  ) : (
-                    <>
-                      <svg
-                        className="h-4 w-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                        />
-                      </svg>
-                      Share
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={() => handleDeleteFile(file.fileId)}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  <svg
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+    <div className="space-y-6">
+      {/* View Controls */}
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            {files.length} file{files.length !== 1 ? 's' : ''}
+          </h3>
+          <Badge variant="secondary">
+            {formatFileSize(files.reduce((total, file) => total + file.size, 0))} total
+          </Badge>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            Grid
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            List
+          </Button>
+        </div>
+      </div>
+
+      {/* Files Grid/List */}
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {files.map((file, index) => {
+            const FileIcon = getFileIcon(file.mimeType);
+            return (
+              <motion.div
+                key={file.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="group hover:shadow-lg transition-all duration-200 border-0 bg-white dark:bg-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col space-y-3">
+                      {/* File Icon and Type */}
+                      <div className="flex items-center justify-between">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                          <FileIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <Badge className={getFileTypeColor(file.mimeType)}>
+                          {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                        </Badge>
+                      </div>
+
+                      {/* File Info */}
+                      <div className="space-y-1">
+                        <h4 className="font-medium text-gray-900 dark:text-white truncate" title={file.originalName}>
+                          {file.originalName}
+                        </h4>
+                        <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-2">
+                          <HardDrive className="w-3 h-3" />
+                          <span>{formatFileSize(file.size)}</span>
+                          <span>•</span>
+                          <Calendar className="w-3 h-3" />
+                          <span>{formatDate(file.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => setShowShareModal(file.fileId)}
+                          disabled={shareLoading === file.fileId}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                          {shareLoading === file.fileId ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                          ) : (
+                            <>
+                              <Share2 className="w-3 h-3 mr-1" />
+                              Share
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteFile(file.fileId)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {files.map((file, index) => {
+                const FileIcon = getFileIcon(file.mimeType);
+                return (
+                  <motion.div
+                    key={file.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                  Delete
-                </button>
-              </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FileIcon className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                            {file.originalName}
+                          </h4>
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+                            <span>{formatFileSize(file.size)}</span>
+                            <span>{formatDate(file.createdAt)}</span>
+                            <Badge className={getFileTypeColor(file.mimeType)}>
+                              {file.mimeType.split('/')[1]?.toUpperCase() || 'FILE'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCreateShare(file.fileId)}
+                          disabled={shareLoading === file.fileId}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                          {shareLoading === file.fileId ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                          ) : (
+                            <>
+                              <Share2 className="w-3 h-3 mr-1" />
+                              Share
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteFile(file.fileId)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
-          </li>
-        ))}
-      </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

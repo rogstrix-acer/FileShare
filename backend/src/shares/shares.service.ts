@@ -64,11 +64,15 @@ export class SharesService {
 
             const share = validation.share;
 
-            // Increment download count
-            await this.appwriteService.incrementDownloadCount(shareToken);
-
-            // Get download URL
+            // Get download URL first
             const downloadUrl = await this.appwriteService.getFileDownloadUrl(share.fileId);
+
+            // Try to increment download count (don't fail if this fails)
+            try {
+                await this.appwriteService.incrementDownloadCount(shareToken);
+            } catch (error) {
+                console.warn('Failed to update download count, but continuing with download:', error.message);
+            }
 
             return {
                 success: true,
@@ -129,6 +133,57 @@ export class SharesService {
             return {
                 success: false,
                 message: error.message || 'Failed to delete share link'
+            };
+        }
+    }
+
+    async getUserShares(userId: string) {
+        try {
+            // console.log('SharesService: getUserShares called for userId:', userId);
+
+            // Get shares for user
+            const shares = await this.appwriteService.getUserShares(userId);
+            // console.log('SharesService: Raw shares from appwrite:', shares);
+            // console.log('SharesService: Number of shares found:', shares.length);
+
+            if (shares.length === 0) {
+                // console.log('SharesService: No shares found');
+                return {
+                    success: true,
+                    message: 'No shares found',
+                    shares: []
+                };
+            }
+
+            // Return basic share data
+            const basicShares = shares.map((share: any) => {
+                // console.log('SharesService: Processing share:', share);
+                return {
+                    id: share.$id,
+                    fileId: share.fileId,
+                    fileName: `File_${share.fileId.slice(0, 8)}`,
+                    shareToken: share.shareToken,
+                    downloadCount: share.downloadCount || 0,
+                    maxDownloads: share.maxDownloads,
+                    expiresAt: share.expiresAt,
+                    createdAt: share.createdAt,
+                    isExpired: share.expiresAt ? new Date(share.expiresAt) < new Date() : false,
+                    isLimitReached: share.maxDownloads ? (share.downloadCount || 0) >= share.maxDownloads : false
+                };
+            });
+
+            // console.log('SharesService: Final processed shares:', basicShares);
+
+            return {
+                success: true,
+                message: 'Shares retrieved successfully',
+                shares: basicShares
+            };
+        } catch (error) {
+            // console.error('SharesService: Error in getUserShares:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to get shares'
             };
         }
     }
