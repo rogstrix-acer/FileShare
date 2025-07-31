@@ -53,7 +53,7 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
         const files = Array.isArray(response.data)
           ? response.data
           : (response.data as { files?: FileItem[] })?.files || [];
-        setFiles(files);
+        setFiles(files as FileItem[]);
       }
     } catch (error) {
       console.error('Failed to fetch files:', error);

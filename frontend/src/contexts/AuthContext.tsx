@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiClient.getCurrentUser();
       
       if (response.success && response.data) {
-        setUser(response.data.user);
+        setUser(response.data.user as unknown as User);
       } else {
         localStorage.removeItem('accessToken');
         apiClient.clearToken();
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         const { accessToken, user: userData } = response.data;
         apiClient.setToken(accessToken);
-        setUser(userData);
+        setUser(userData as unknown as User);
         return { success: true };
       } else {
         return { success: false, error: response.error || 'Login failed' };
