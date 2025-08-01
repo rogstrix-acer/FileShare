@@ -1,7 +1,7 @@
 // API configuration and utilities
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
+const BACKEND_URL =  '/api';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
@@ -76,14 +76,14 @@ export class ApiClient {
 
   // Auth methods
   async login(email: string, password: string) {
-    return this.request<{ accessToken: string; user: any }>('/auth/login', {
+    return this.request<{ accessToken: string; user: Record<string, unknown> }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
   }
 
   async signup(email: string, password: string, name: string) {
-    return this.request<{ user: any }>('/auth/signup', {
+    return this.request<{ user: Record<string, unknown> }>('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     });
@@ -98,7 +98,7 @@ export class ApiClient {
   }
 
   async getCurrentUser() {
-    return this.request<{ user: any }>('/auth/me');
+    return this.request<{ user: Record<string, unknown> }>('/auth/me');
   }
 
   // File methods
@@ -133,7 +133,7 @@ export class ApiClient {
   }
 
   async getUserFiles() {
-    return this.request<any[]>('/files/my-files');
+    return this.request<unknown[]>('/files/my-files');
   }
 
   async createShareLink(fileId: string, expiresAt?: string, maxDownloads?: number) {
@@ -151,7 +151,7 @@ export class ApiClient {
 
   // Share methods
   async getSharedFile(shareToken: string) {
-    return this.request<{ file: any; share: any }>(`/shares/${shareToken}`);
+    return this.request<{ file: Record<string, unknown>; share: Record<string, unknown> }>(`/shares/${shareToken}`);
   }
 
   async downloadSharedFile(shareToken: string) {
@@ -161,7 +161,7 @@ export class ApiClient {
   }
 
   async getUserShares() {
-    return this.request<{ shares: any[] }>('/shares/my-shares');
+    return this.request<{ shares: Record<string, unknown>[] }>('/shares/my-shares');
   }
 }
 

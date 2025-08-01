@@ -13,18 +13,12 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line
+    ResponsiveContainer
 } from 'recharts';
 import {
-    Download,
     Share2,
-    Calendar,
-    Clock,
     Copy,
     ExternalLink,
-    Trash2,
     Plus,
     Eye
 } from 'lucide-react';
@@ -77,7 +71,7 @@ export default function FileAnalytics() {
 
             const userFiles = Array.isArray(filesResponse.data)
                 ? filesResponse.data
-                : (filesResponse.data as any)?.files || [];
+                : (filesResponse.data as { files?: unknown[] })?.files || [];
 
             // Get user shares
             const sharesResponse = await apiClient.getUserShares();
@@ -86,9 +80,31 @@ export default function FileAnalytics() {
             const shares = sharesResponse.success && sharesResponse.data ? sharesResponse.data.shares || [] : [];
             console.log('Extracted shares:', shares);
 
+            // Type assert the arrays to their expected structures
+            const typedUserFiles = userFiles as Array<{
+                id: string;
+                fileId: string;
+                originalName: string;
+                size: number;
+                mimeType: string;
+                createdAt: string;
+            }>;
+
+            const typedShares = shares as Array<{
+                fileId: string;
+                id: string;
+                shareToken: string;
+                downloadCount: number;
+                maxDownloads?: number;
+                expiresAt?: string;
+                createdAt: string;
+                isExpired: boolean;
+                isLimitReached: boolean;
+            }>;
+
             // Combine files with their shares
-            const filesWithShares: FileWithShares[] = userFiles.map((file: any) => {
-                const fileShares = shares.filter((share: any) => share.fileId === file.fileId);
+            const filesWithShares: FileWithShares[] = typedUserFiles.map((file) => {
+                const fileShares = typedShares.filter((share) => share.fileId === file.fileId);
 
                 return {
                     id: file.id,
@@ -98,9 +114,9 @@ export default function FileAnalytics() {
                     mimeType: file.mimeType,
                     createdAt: file.createdAt,
                     shares: fileShares,
-                    totalDownloads: fileShares.reduce((sum: number, share: any) => sum + (share.downloadCount || 0), 0),
-                    activeShares: fileShares.filter((share: any) => !share.isExpired && !share.isLimitReached).length,
-                    expiredShares: fileShares.filter((share: any) => share.isExpired || share.isLimitReached).length
+                    totalDownloads: fileShares.reduce((sum: number, share) => sum + (share.downloadCount || 0), 0),
+                    activeShares: fileShares.filter((share) => !share.isExpired && !share.isLimitReached).length,
+                    expiredShares: fileShares.filter((share) => share.isExpired || share.isLimitReached).length
                 };
             });
 
@@ -115,7 +131,7 @@ export default function FileAnalytics() {
 
     const handleCreateShare = async (fileId: string) => {
         try {
-            const shareData: any = {};
+            const shareData: { expiresAt?: string; maxDownloads?: number } = {};
 
             if (expiryDate) {
                 shareData.expiresAt = new Date(expiryDate).toISOString();

@@ -4,7 +4,7 @@ const NESTJS_BACKEND_URL = process.env.NESTJS_BACKEND_URL || 'http://localhost:3
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -16,7 +16,8 @@ export async function DELETE(
       );
     }
 
-    const response = await fetch(`${NESTJS_BACKEND_URL}/files/${params.fileId}`, {
+    const { fileId } = await params;
+    const response = await fetch(`${NESTJS_BACKEND_URL}/files/${fileId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authHeader,

@@ -4,11 +4,11 @@ const NESTJS_BACKEND_URL = process.env.NESTJS_BACKEND_URL || 'http://localhost:3
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { fileId: string } }
+  { params }: { params: Promise<{ fileId: string }> }
 ) {
   try {
     const authHeader = request.headers.get('authorization');
-    
+
     if (!authHeader) {
       return NextResponse.json(
         { message: 'Authorization header required' },
@@ -17,8 +17,9 @@ export async function POST(
     }
 
     const body = await request.json();
-    
-    const response = await fetch(`${NESTJS_BACKEND_URL}/files/${params.fileId}/share`, {
+    const { fileId } = await params;
+
+    const response = await fetch(`${NESTJS_BACKEND_URL}/files/${fileId}/share`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

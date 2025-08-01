@@ -1,11 +1,12 @@
 import SharePage from '@/components/SharePage';
 
 interface SharePageProps {
-  params: {
+  params: Promise<{
     shareToken: string;
-  };
+  }>;
 }
 
-export default function Share({ params }: SharePageProps) {
-  return <SharePage shareToken={params.shareToken} />;
+export default async function Share({ params }: SharePageProps) {
+  const { shareToken } = await params;
+  return <SharePage shareToken={shareToken} />;
 }

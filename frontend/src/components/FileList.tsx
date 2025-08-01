@@ -6,7 +6,6 @@ import { apiClient } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import {
   FileText,
   Image,
@@ -16,12 +15,8 @@ import {
   File,
   Share2,
   Trash2,
-  Download,
   Calendar,
   HardDrive,
-  Copy,
-  ExternalLink,
-  MoreVertical,
   Upload
 } from 'lucide-react';
 
@@ -44,7 +39,6 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
   const [loading, setLoading] = useState(true);
   const [shareLoading, setShareLoading] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showShareModal, setShowShareModal] = useState<string | null>(null);
   const [expiryDate, setExpiryDate] = useState('');
   const [maxDownloads, setMaxDownloads] = useState('');
 
@@ -58,8 +52,8 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
       if (response.success && response.data) {
         const files = Array.isArray(response.data)
           ? response.data
-          : (response.data as any)?.files || [];
-        setFiles(files);
+          : (response.data as { files?: FileItem[] })?.files || [];
+        setFiles(files as FileItem[]);
       }
     } catch (error) {
       console.error('Failed to fetch files:', error);
@@ -71,7 +65,7 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
   const handleCreateShare = async (fileId: string) => {
     setShareLoading(fileId);
     try {
-      const shareData: any = {};
+      const shareData: { expiresAt?: string; maxDownloads?: number } = {};
 
       if (expiryDate) {
         shareData.expiresAt = new Date(expiryDate).toISOString();
@@ -88,7 +82,6 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
         alert('Share link created and copied to clipboard!');
 
         // Reset form
-        setShowShareModal(null);
         setExpiryDate('');
         setMaxDownloads('');
       } else {
@@ -261,7 +254,7 @@ export default function FileList({ refreshTrigger, onSwitchToUpload }: FileListP
                       <div className="flex items-center space-x-2 pt-2">
                         <Button
                           size="sm"
-                          onClick={() => setShowShareModal(file.fileId)}
+                          onClick={() => handleCreateShare(file.fileId)}
                           disabled={shareLoading === file.fileId}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                         >
